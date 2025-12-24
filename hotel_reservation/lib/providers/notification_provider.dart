@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/notification.dart';
-import '../services/notification.dart';
+import '../services/notification_service.dart';
 
 class NotificationProvider with ChangeNotifier {
   final NotificationService _notificationService = NotificationService();

@@ -1,95 +1,101 @@
-import 'package:hotel_reservation/config/constants.dart';
 import 'package:hotel_reservation/models/reservation.dart';
-import 'api_service.dart';
+import 'package:hotel_reservation/services/api_service.dart';
+import 'package:hotel_reservation/config/api_config.dart';
 
 class ReservationService {
-  // Get Reservation
-  static Future<List<Reservation>> getReservations({String? status}) async {
-    String endpoint = AppConstants.RESERVATIONS;
+  final ApiService _apiService = ApiService();
 
-    if (status != null) {
-      endpoint += '?status=$status';
-    }
-
-    final response = await ApiService.get(endpoint);
-
-    if (response['success']) {
-      final List<dynamic> data = response['data']['data'];
-      return data.map((json) => Reservation.fromJson(json)).toList();
-    }
-
-    return [];
-  }
-
-  // Get reservation by ID
-  static Future<Reservation?> getReservationById(int id) async {
-    final response = await ApiService.get('${AppConstants.RESERVATIONS}/$id');
-
-    if (response['success']) {
-      return Reservation.fromJson(response['data']);
-    }
-
-    return null;
-  }
-
-  // Create reservation
-  static Future<Reservation> createReservation({
+  /// Create reservation - AUTO CONFIRMED (NO PAYMENT)
+  Future<Reservation?> createReservation({
     required int roomId,
-    required String checkInDate,
-    required String checkOutData,
-    String? notes,
+    required DateTime checkInDate,
+    required DateTime checkOutDate,
+    required int numGuests,
+    String? specialRequests,
   }) async {
-    final response = await ApiService.post(
-      AppConstants.RESERVATIONS,
-      body: {
-        'room': roomId,
-        'check_in_date': checkInDate,
-        'check_out_date': checkOutData,
-        'notes': notes,
-      },
-    );
+    try {
+      final response = await _apiService.post(
+        ApiConfig.customerReservations,
+        data: {
+          'room_id': roomId,
+          'check_in_date': checkInDate.toIso8601String().split('T')[0],
+          'check_out_date': checkOutDate.toIso8601String().split('T')[0],
+          'num_guests': numGuests,
+          if (specialRequests != null) 'special_requests': specialRequests,
+        },
+      );
 
-    if (response['success']) {
-      return Reservation.fromJson(response['data']);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return Reservation.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to create reservation: $e');
     }
-
-    throw Exception(response['message'] ?? 'Failed to create reservation');
   }
 
-  // CheckIn (Admin)
-  static Future<Reservation> checkIn(int reservationId) async {
-    final response = await ApiService.post(
-      '${AppConstants.RESERVATIONS}/$reservationId/check-in',
-    );
+  Future<List<Reservation>> getMyReservations() async {
+    try {
+      final response = await _apiService.get(ApiConfig.customerReservations);
 
-    if (response['success']) {
-      return Reservation.fromJson(response['data']);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => Reservation.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load reservations: $e');
     }
-
-    throw Exception(response['mesaage'] ?? 'Failed to check-in');
   }
 
-  // CheckOut (Admin)
-  static Future<Reservation> checkOut(int reservationId) async {
-    final response = await ApiService.post(
-      '${AppConstants.RESERVATIONS}/$reservationId/check-out',
-    );
+  Future<Reservation?> getReservationDetail(int reservationId) async {
+    try {
+      final response = await _apiService.get(
+        '${ApiConfig.customerReservations}/$reservationId',
+      );
 
-    if (response['success']) {
-      return Reservation.fromJson(response['data']);
+      if (response.statusCode == 200) {
+        return Reservation.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to load reservation: $e');
     }
-
-    throw Exception(response['message'] ?? 'Failed to check-out');
   }
 
-  // Cancel reservation
-  static Future<void> cancelReservation(int reservationId) async {
-    final response = await ApiService.put(
-      '${AppConstants.RESERVATIONS}/$reservationId/cancel',
-    );
+  Future<bool> cancelReservation(int reservationId, {String? reason}) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.customerReservations}/$reservationId/cancel',
+        data: {
+          if (reason != null) 'reason': reason,
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 
-    if (!response['success']) {
-      throw Exception(response['message'] ?? 'Failed to cancel reservation');
+  Future<bool> checkIn(int reservationId) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.customerReservations}/$reservationId/check-in',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> checkOut(int reservationId) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.customerReservations}/$reservationId/check-out',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
     }
   }
 }

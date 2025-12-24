@@ -1,3 +1,5 @@
+import 'package:hotel_reservation/models/room_category.dart';
+
 class Room {
   final int id;
   final int categoryId;

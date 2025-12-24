@@ -1,3 +1,7 @@
+import 'package:hotel_reservation/models/user.dart';
+import 'package:hotel_reservation/models/room.dart';
+import 'package:hotel_reservation/models/notification.dart';
+
 class Reservation {
   final int id;
   final String bookingCode;

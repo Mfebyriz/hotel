@@ -1,27 +1,67 @@
-import 'package:hotel_reservation/config/constants.dart';
 import 'package:hotel_reservation/models/notification.dart';
-import 'api_service.dart';
+import 'package:hotel_reservation/services/api_service.dart';
+import 'package:hotel_reservation/config/api_config.dart';
 
 class NotificationService {
-  // Get notifications
-  static Future<List<AppNotification>> getNotifications() async {
-    final response = await ApiService.get(AppConstants.NOTIFICATIONS);
+  final ApiService _apiService = ApiService();
 
-    if (response['success']) {
-      final List<dynamic> data = response['data']['data'];
-      return data.map((json) => AppNotification.fromJson(json)).toList();
+  Future<List<NotificationModel>> getNotifications() async {
+    try {
+      final response = await _apiService.get(ApiConfig.notifications);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        return data.map((json) => NotificationModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      throw Exception('Failed to load notifications: $e');
     }
-
-    return [];
   }
 
-  // Mark as read
-  static Future<void> markAsRead(int notificationId) async {
-    await ApiService.put('${AppConstants.NOTIFICATIONS}/$notificationId/read');
+  Future<int> getUnreadCount() async {
+    try {
+      final response = await _apiService.get(ApiConfig.unreadNotifications);
+
+      if (response.statusCode == 200) {
+        return response.data['count'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      return 0;
+    }
   }
 
-  // Mark all as read
-  static Future<void> markAllAsRead() async {
-    await ApiService.post('${AppConstants.NOTIFICATIONS}/read-all');
+  Future<bool> markAsRead(int notificationId) async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.notifications}/$notificationId/read',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> markAllAsRead() async {
+    try {
+      final response = await _apiService.post(
+        '${ApiConfig.notifications}/read-all',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(int notificationId) async {
+    try {
+      final response = await _apiService.delete(
+        '${ApiConfig.notifications}/$notificationId',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 }

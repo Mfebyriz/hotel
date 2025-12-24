@@ -13,7 +13,17 @@ return new class extends Migration
     {
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_id')->constrained('room_categories')->onDelete('cascade');
+            $table->string('room_number', 20)->unique();
+            $table->integer('floor')->nullable();
+            $table->enum('status', ['available', 'occupied', 'maintenance', 'reserved'])->default('available');
+            $table->text('description')->nullable();
+            $table->decimal('size_sqm', 8, 2)->nullable()->comment('Room size in square meters');
             $table->timestamps();
+
+            $table->index('category_id');
+            $table->index('status');
+            $table->index('room_number');
         });
     }
 

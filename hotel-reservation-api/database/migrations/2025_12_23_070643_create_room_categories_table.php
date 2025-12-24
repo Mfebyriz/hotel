@@ -13,7 +13,16 @@ return new class extends Migration
     {
         Schema::create('room_categories', function (Blueprint $table) {
             $table->id();
+            $table->string('name', 100);
+            $table->text('description')->nullable();
+            $table->decimal('base_price', 12, 2);
+            $table->integer('max_guests')->default(2);
+            $table->json('amenities')->nullable()->comment('Array of amenities');
+            $table->string('image_url', 500)->nullable()->comment('Single image for category');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+
+            $table->index('name');
         });
     }
 

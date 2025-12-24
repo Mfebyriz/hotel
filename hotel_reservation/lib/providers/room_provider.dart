@@ -52,7 +52,7 @@ class RoomProvider with ChangeNotifier {
 
   Future<Room?> fetchRoomById(int id) async {
     try {
-      return await _roomService.getRoomById(id);
+      return await _roomService.getRoomDetail(id);
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -69,7 +69,14 @@ class RoomProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _roomService.createRoom(room);
+      await _roomService.createRoom(
+        categoryId: room.categoryId,
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        status: room.status,
+        description: room.description,
+        sizeSqm: room.sizeSqm,
+      );
       await fetchRooms();
       return true;
     } catch (e) {
@@ -85,7 +92,15 @@ class RoomProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _roomService.updateRoom(room);
+      await _roomService.updateRoom(
+        roomId: room.id,
+        categoryId: room.categoryId,
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        status: room.status,
+        description: room.description,
+        sizeSqm: room.sizeSqm,
+      );
       await fetchRooms();
       return true;
     } catch (e) {
@@ -103,6 +118,85 @@ class RoomProvider with ChangeNotifier {
     try {
       await _roomService.deleteRoom(id);
       await fetchRooms();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Category CRUD methods
+  Future<bool> createCategory({
+    required String name,
+    String? description,
+    required double basePrice,
+    required int maxGuests,
+    List<String>? amenities,
+    String? imageUrl,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _roomService.createCategory(
+        name: name,
+        description: description,
+        basePrice: basePrice,
+        maxGuests: maxGuests,
+        amenities: amenities,
+        imageUrl: imageUrl,
+      );
+      await fetchCategories();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateCategory({
+    required int categoryId,
+    required String name,
+    String? description,
+    required double basePrice,
+    required int maxGuests,
+    List<String>? amenities,
+    String? imageUrl,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _roomService.updateCategory(
+        categoryId: categoryId,
+        name: name,
+        description: description,
+        basePrice: basePrice,
+        maxGuests: maxGuests,
+        amenities: amenities,
+        imageUrl: imageUrl,
+      );
+      await fetchCategories();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteCategory(int id) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _roomService.deleteCategory(id);
+      await fetchCategories();
       return true;
     } catch (e) {
       _error = e.toString();

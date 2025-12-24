@@ -40,11 +40,18 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = await _authService.login(email, password);
-      _currentUser = user;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      final result = await _authService.login(email, password);
+      if (result['success'] == true) {
+        _currentUser = result['user'] as User;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = result['message'] ?? 'Login gagal';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -59,11 +66,23 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = await _authService.register(name, email, password);
-      _currentUser = user;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      final result = await _authService.register(
+        name: name,
+        email: email,
+        phone: '', // Optional
+        password: password,
+      );
+      if (result['success'] == true) {
+        _currentUser = result['user'] as User;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = result['message'] ?? 'Registrasi gagal';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -88,11 +107,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final updatedUser = await _authService.updateProfile(name, email);
-      _currentUser = updatedUser;
-      _isLoading = false;
-      notifyListeners();
-      return true;
+      // Get current user first
+      final updatedUser = await _authService.getCurrentUser();
+      if (updatedUser != null) {
+        _currentUser = updatedUser;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = 'Gagal update profile';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
     } catch (e) {
       _error = e.toString();
       _isLoading = false;

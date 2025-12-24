@@ -76,4 +76,167 @@ class RoomService {
       throw Exception('Failed to check availability: $e');
     }
   }
+
+  /// Create new room (Admin only)
+  Future<Room?> createRoom({
+    required int categoryId,
+    required String roomNumber,
+    int? floor,
+    String status = 'available',
+    String? description,
+    double? sizeSqm,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        ApiConfig.adminRooms,
+        data: {
+          'category_id': categoryId,
+          'room_number': roomNumber,
+          if (floor != null) 'floor': floor,
+          'status': status,
+          if (description != null) 'description': description,
+          if (sizeSqm != null) 'size_sqm': sizeSqm,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return Room.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to create room: $e');
+    }
+  }
+
+  /// Update existing room (Admin only)
+  Future<Room?> updateRoom({
+    required int roomId,
+    required int categoryId,
+    required String roomNumber,
+    int? floor,
+    required String status,
+    String? description,
+    double? sizeSqm,
+  }) async {
+    try {
+      final response = await _apiService.put(
+        '${ApiConfig.adminRooms}/$roomId',
+        data: {
+          'category_id': categoryId,
+          'room_number': roomNumber,
+          if (floor != null) 'floor': floor,
+          'status': status,
+          if (description != null) 'description': description,
+          if (sizeSqm != null) 'size_sqm': sizeSqm,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return Room.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to update room: $e');
+    }
+  }
+
+  /// Delete room (Admin only)
+  Future<bool> deleteRoom(int roomId) async {
+    try {
+      final response = await _apiService.delete(
+        '${ApiConfig.adminRooms}/$roomId',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Failed to delete room: $e');
+    }
+  }
+
+  /// Update room status (Admin only)
+  Future<bool> updateRoomStatus(int roomId, String status) async {
+    try {
+      final response = await _apiService.put(
+        '${ApiConfig.adminRooms}/$roomId/status',
+        data: {'status': status},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Failed to update room status: $e');
+    }
+  }
+
+  /// Create new room category (Admin only)
+  Future<RoomCategory?> createCategory({
+    required String name,
+    String? description,
+    required double basePrice,
+    required int maxGuests,
+    List<String>? amenities,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        ApiConfig.adminCategories,
+        data: {
+          'name': name,
+          if (description != null) 'description': description,
+          'base_price': basePrice,
+          'max_guests': maxGuests,
+          if (amenities != null) 'amenities': amenities,
+          if (imageUrl != null) 'image_url': imageUrl,
+        },
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return RoomCategory.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to create category: $e');
+    }
+  }
+
+  /// Update room category (Admin only)
+  Future<RoomCategory?> updateCategory({
+    required int categoryId,
+    required String name,
+    String? description,
+    required double basePrice,
+    required int maxGuests,
+    List<String>? amenities,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await _apiService.put(
+        '${ApiConfig.adminCategories}/$categoryId',
+        data: {
+          'name': name,
+          if (description != null) 'description': description,
+          'base_price': basePrice,
+          'max_guests': maxGuests,
+          if (amenities != null) 'amenities': amenities,
+          if (imageUrl != null) 'image_url': imageUrl,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return RoomCategory.fromJson(response.data['data']);
+      }
+      return null;
+    } catch (e) {
+      throw Exception('Failed to update category: $e');
+    }
+  }
+
+  /// Delete room category (Admin only)
+  Future<bool> deleteCategory(int categoryId) async {
+    try {
+      final response = await _apiService.delete(
+        '${ApiConfig.adminCategories}/$categoryId',
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      throw Exception('Failed to delete category: $e');
+    }
+  }
 }

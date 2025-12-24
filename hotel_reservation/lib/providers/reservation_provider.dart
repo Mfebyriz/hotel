@@ -45,7 +45,9 @@ class ReservationProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _reservations = await _reservationService.getAllReservations();
+      // Use same method as myReservations for now
+      // In production, you'd have a separate admin endpoint
+      _reservations = await _reservationService.getMyReservations();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -57,7 +59,7 @@ class ReservationProvider with ChangeNotifier {
 
   Future<Reservation?> fetchReservationById(int id) async {
     try {
-      return await _reservationService.getReservationById(id);
+      return await _reservationService.getReservationDetail(id);
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -104,9 +106,23 @@ class ReservationProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _reservationService.updateReservationStatus(id, status);
-      await fetchAllReservations();
-      return true;
+      // Use appropriate method based on status
+      bool success = false;
+      if (status == 'checked_in') {
+        success = await _reservationService.checkIn(id);
+      } else if (status == 'checked_out') {
+        success = await _reservationService.checkOut(id);
+      } else if (status == 'cancelled') {
+        success = await _reservationService.cancelReservation(id);
+      }
+
+      if (success) {
+        await fetchAllReservations();
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return success;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;

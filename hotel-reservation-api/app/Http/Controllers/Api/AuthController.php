@@ -5,115 +5,135 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Container\Attributes\Storage;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     /**
-     * Register a new user
-     */
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'phone' => 'required|string|max:20',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role' => 'customer', // Always customer for registration
-            'is_active' => true,
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Registration successful',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'Bearer'
-            ]
-        ], 201);
-    }
-
-    /**
-     * Login user
+     * Login user and create token
      */
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+            ]);
 
-        if ($validator->fails()) {
+            $credentials = $request->only('email', 'password');
+
+            if (Auth::attempt($credentials)) {
+                $user = Auth::user();
+                $token = $user->createToken('auth_token')->plainTextToken;
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'token' => $token,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'role' => $user->role,
+                        'profile_image' => $user->profile_image,
+                        'is_active' => $user->is_active,
+                    ],
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid email or password',
+            ], 401);
+
+        } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors' => $e->errors(),
             ], 422);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid email or password'
-            ], 401);
+                'message' => 'Server error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Your account has been deactivated. Please contact administrator.'
-            ], 403);
-        }
-
-        // Delete old tokens
-        $user->tokens()->delete();
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login successful',
-            'data' => [
-                'user' => $user,
-                'token' => $token,
-                'token_type' => 'Bearer'
-            ]
-        ]);
     }
 
     /**
-     * Logout user
+     * Register new user
+     */
+    public function register(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'phone' => 'nullable|string|max:20',
+                'password' => 'required|string|min:6|confirmed',
+            ]);
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'role' => 'customer',
+                'is_active' => true,
+            ]);
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration successful',
+                'token' => $token,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'profile_image' => $user->profile_image,
+                    'is_active' => $user->is_active,
+                ],
+            ], 201);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Logout user (revoke token)
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        try {
+            $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout successful'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Logged out successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Logout error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -121,66 +141,26 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $request->user()
-            ]
-        ]);
-    }
+        try {
+            $user = $request->user();
 
-    /**
-     * Update user profile
-     */
-    public function updateProfile(Request $request)
-    {
-        $user = $request->user();
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'phone' => 'sometimes|required|string|max:20',
-            'password' => 'sometimes|required|string|min:6|confirmed',
-            'profile_image' => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
-
-        if ($validator->fails()) {
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'profile_image' => $user->profile_image,
+                    'is_active' => $user->is_active,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation error',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
         }
-
-        if ($request->has('name')) {
-            $user->name = $request->name;
-        }
-
-        if ($request->has('phone')) {
-            $user->phone = $request->phone;
-        }
-
-        if ($request->has('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        if ($request->hasFile('profile_image')) {
-            // Delete old image if exists
-            if ($user->profile_image && \Storage::disk('public')->exists($user->profile_image)) {
-                \Storage::disk('public')->delete($user->profile_image);
-            }
-
-            $path = $request->file('profile_image')->store('profiles', 'public');
-            $user->profile_image = $path;
-        }
-
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully',
-            'data' => [
-                'user' => $user
-            ]
-        ]);
     }
 }

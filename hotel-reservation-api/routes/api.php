@@ -13,12 +13,6 @@ use App\Http\Controllers\Admin\RoomCategoryController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Admin\ReportController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
-
 // Public Routes (No Auth Required)
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);

@@ -6,6 +6,7 @@ import '../../utils/helpers.dart';
 import '../../widgets/common/loading_widget.dart';
 import '../../widgets/common/error_widget.dart' as custom;
 import '../../widgets/common/custom_button.dart';
+import 'add_category_screen.dart';
 
 class RoomCategoryScreen extends StatefulWidget {
   const RoomCategoryScreen({Key? key}) : super(key: key);
@@ -53,11 +54,12 @@ class _RoomCategoryScreenState extends State<RoomCategoryScreen> {
               message: 'Belum ada kategori kamar',
               icon: Icons.category_outlined,
               onAction: () {
-                // TODO: Add category
-                Helpers.showSnackBar(
+                Navigator.push(
                   context,
-                  'Fitur tambah kategori coming soon!',
-                );
+                  MaterialPageRoute(
+                    builder: (_) => const AddCategoryScreen(),
+                  ),
+                ).then((_) => _loadCategories());
               },
               actionText: 'Tambah Kategori',
             );
@@ -170,11 +172,20 @@ class _RoomCategoryScreenState extends State<RoomCategoryScreen> {
                                 Expanded(
                                   child: OutlinedButton.icon(
                                     onPressed: () {
-                                      // TODO: Edit category
-                                      Helpers.showSnackBar(
+                                      Navigator.push(
                                         context,
-                                        'Fitur edit coming soon!',
-                                      );
+                                        MaterialPageRoute(
+                                          builder: (_) => AddCategoryScreen(
+                                            categoryId: category.id,
+                                            categoryName: category.name,
+                                            description: category.description,
+                                            basePrice: category.basePrice,
+                                            maxGuests: category.maxGuests,
+                                            amenities: category.amenities,
+                                            imageUrl: category.imageUrl,
+                                          ),
+                                        ),
+                                      ).then((_) => _loadCategories());
                                     },
                                     icon: const Icon(Icons.edit, size: 18),
                                     label: const Text('Edit'),
@@ -186,12 +197,29 @@ class _RoomCategoryScreenState extends State<RoomCategoryScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      // TODO: Delete category
-                                      Helpers.showSnackBar(
+                                    onPressed: () async {
+                                      final confirm = await Helpers.showConfirmationDialog(
                                         context,
-                                        'Fitur hapus coming soon!',
+                                        title: 'Hapus Kategori',
+                                        message: 'Yakin ingin menghapus kategori ini?',
+                                        confirmText: 'Hapus',
+                                        cancelText: 'Batal',
                                       );
+
+                                      if (confirm) {
+                                        final success = await provider.deleteCategory(category.id);
+                                        if (mounted) {
+                                          if (success) {
+                                            Helpers.showSnackBar(context, 'Kategori berhasil dihapus');
+                                          } else {
+                                            Helpers.showSnackBar(
+                                              context,
+                                              provider.error ?? 'Gagal menghapus kategori',
+                                              isError: true,
+                                            );
+                                          }
+                                        }
+                                      }
                                     },
                                     icon: const Icon(Icons.delete, size: 18),
                                     label: const Text('Hapus'),
@@ -215,8 +243,12 @@ class _RoomCategoryScreenState extends State<RoomCategoryScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Add new category
-          Helpers.showSnackBar(context, 'Fitur tambah kategori coming soon!');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AddCategoryScreen(),
+            ),
+          ).then((_) => _loadCategories());
         },
         icon: const Icon(Icons.add),
         label: const Text('Tambah Kategori'),

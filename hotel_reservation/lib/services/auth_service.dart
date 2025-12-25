@@ -17,29 +17,42 @@ class AuthService {
         },
       );
 
-      if (response.statusCode == 200) {
+      print('Login Response Status: ${response.statusCode}');
+      print('Login Response Data: ${response.data}');
+
+      if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
-        final token = data['token'];
-        final user = User.fromJson(data['user']);
 
-        await _storageService.saveToken(token);
-        await _storageService.saveUser(user);
+        // Check if response has required fields
+        if (data['token'] != null && data['user'] != null) {
+          final token = data['token'] as String;
+          final user = User.fromJson(data['user'] as Map<String, dynamic>);
 
-        return {
-          'success': true,
-          'user': user,
-          'token': token,
-        };
+          await _storageService.saveToken(token);
+          await _storageService.saveUser(user);
+
+          return {
+            'success': true,
+            'user': user,
+            'token': token,
+          };
+        } else {
+          return {
+            'success': false,
+            'message': 'Invalid response format from server',
+          };
+        }
       }
 
       return {
         'success': false,
-        'message': 'Login failed',
+        'message': response.data?['message'] ?? 'Login failed',
       };
     } catch (e) {
+      print('Login Error: $e');
       return {
         'success': false,
-        'message': e.toString(),
+        'message': 'Connection error: ${e.toString()}',
       };
     }
   }
@@ -62,29 +75,38 @@ class AuthService {
         },
       );
 
-      if (response.statusCode == 201) {
-        final data = response.data;
-        final token = data['token'];
-        final user = User.fromJson(data['user']);
+      print('Register Response Status: ${response.statusCode}');
+      print('Register Response Data: ${response.data}');
 
-        await _storageService.saveToken(token);
-        await _storageService.saveUser(user);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data != null) {
+          final data = response.data;
 
-        return {
-          'success': true,
-          'user': user,
-          'token': token,
-        };
+          if (data['token'] != null && data['user'] != null) {
+            final token = data['token'] as String;
+            final user = User.fromJson(data['user'] as Map<String, dynamic>);
+
+            await _storageService.saveToken(token);
+            await _storageService.saveUser(user);
+
+            return {
+              'success': true,
+              'user': user,
+              'token': token,
+            };
+          }
+        }
       }
 
       return {
         'success': false,
-        'message': 'Registration failed',
+        'message': response.data?['message'] ?? 'Registration failed',
       };
     } catch (e) {
+      print('Register Error: $e');
       return {
         'success': false,
-        'message': e.toString(),
+        'message': 'Connection error: ${e.toString()}',
       };
     }
   }
@@ -93,27 +115,32 @@ class AuthService {
     try {
       await _apiService.post(ApiConfig.logout);
     } catch (e) {
-      // Ignore error
+      print('Logout Error: $e');
+    } finally {
+      await _storageService.clearAll();
     }
-    await _storageService.clearAll();
   }
 
   Future<User?> getCurrentUser() async {
     try {
       final response = await _apiService.get(ApiConfig.me);
-      if (response.statusCode == 200) {
-        final user = User.fromJson(response.data['user']);
+
+      print('Get User Response Status: ${response.statusCode}');
+      print('Get User Response Data: ${response.data}');
+
+      if (response.statusCode == 200 && response.data != null) {
+        final user = User.fromJson(response.data['user'] as Map<String, dynamic>);
         await _storageService.saveUser(user);
         return user;
       }
     } catch (e) {
-      return null;
+      print('Get Current User Error: $e');
     }
     return null;
   }
 
   Future<bool> isLoggedIn() async {
     final token = await _storageService.getToken();
-    return token != null;
+    return token != null && token.isNotEmpty;
   }
 }

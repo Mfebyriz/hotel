@@ -41,19 +41,27 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final result = await _authService.login(email, password);
-      if (result['success'] == true) {
+
+      if (result == null) {
+        _error = 'Tidak dapat terhubung ke server';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      if (result['success'] == true && result['user'] != null) {
         _currentUser = result['user'] as User;
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = result['message'] ?? 'Login gagal';
+        _error = result['message']?.toString() ?? 'Login gagal';
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _error = e.toString();
+      _error = 'Error: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
       return false;

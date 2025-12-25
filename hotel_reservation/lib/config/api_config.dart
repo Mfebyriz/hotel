@@ -1,7 +1,7 @@
 class ApiConfig {
   // Base URL - GANTI DENGAN URL SERVER KAMU
-  static const String baseUrl = 'http://10.0.2.2:8000/api'; // Android Emulator
-  // static const String baseUrl = 'http://127.0.0.1:8000/api'; // iOS Simulator
+  // static const String baseUrl = 'http://10.0.2.2:8000/api'; // Android Emulator
+  static const String baseUrl = 'http://127.0.0.1:8000/api'; // iOS Simulator
   // static const String baseUrl = 'http://192.168.1.100:8000/api'; // Real Device (ganti dengan IP komputer kamu)
   // static const String baseUrl = 'https://yourserver.com/api'; // Production
 
